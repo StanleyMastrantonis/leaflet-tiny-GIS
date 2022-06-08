@@ -1,0 +1,76 @@
+---
+title: "leaflet-GIS"
+author: "Stanley Mastrantonis"
+date: '2022-06-08'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(sf)
+library(leaflet)
+library(mapview)
+library(mapedit)
+library(leafpm)
+library(shiny)
+library(tidyverse)
+
+```
+
+```{r leaflet draw, include = FALSE = FALSE}
+i <<- 1
+feat_list  <<- list()
+
+ui = fluidPage(
+  tabsetPanel(
+    tabPanel("Map",
+             leafletOutput("mymap")
+    ),
+    tabPanel("Debug",
+             verbatimTextOutput("debug_out")
+    )
+  )
+  
+)
+
+
+server <- function(input, output, session){
+  output$debug_out <- renderPrint(reactiveValuesToList(input))
+  
+  output$mymap <- renderLeaflet(
+    leaflet() %>%
+      addProviderTiles("Esri.WorldImagery") %>%
+      setView(lng = -166, lat = 58.0, zoom = 5) %>%
+      addPmToolbar(targetGroup = 'draw',
+        toolbarOptions = pmToolbarOptions(drawMarker = FALSE, 
+                                          drawPolyline = FALSE,
+                                          cutPolygon = TRUE,
+                                          position = "topright"),
+        drawOptions = pmDrawOptions(snappable = FALSE, allowSelfIntersection = FALSE),
+        editOptions = pmEditOptions(preventMarkerRemoval = TRUE, draggable = TRUE),
+        cutOptions = pmCutOptions(snappable = FALSE, allowSelfIntersection = FALSE)
+      )
+  )
+  
+  
+  observeEvent(input$mymap_draw_new_feature,{
+    #print(input)
+    feature <<- input$mymap_draw_new_feature
+    feat_list[[i]] <<- geojsonsf::geojson_sf(jsonify::to_json(feature, unbox = T))
+    i<<- i+1
+  })
+  
+  observeEvent(input$mymap_draw_edited_features, {
+    cutfeature <<- input$mymap_draw_edited_features
+    #print(cutfeature)
+    
+  })
+  
+
+  
+}
+
+shinyApp(ui = ui, server = server)
+
+```
