@@ -18,14 +18,17 @@ library(tidyverse)
 
 ```
 
-```{r leaflet draw, include = FALSE = FALSE}
+```{r leaflet draw, include = FALSE}
 i <<- 1
+i_edit <<- 1
 feat_list  <<- list()
+edit_list <<- list()
 
 ui = fluidPage(
   tabsetPanel(
     tabPanel("Map",
-             leafletOutput("mymap")
+             leafletOutput("mymap"),
+             textInput("label", "Label", "Smith_Pad_1_Soil")
     ),
     tabPanel("Debug",
              verbatimTextOutput("debug_out")
@@ -58,11 +61,13 @@ server <- function(input, output, session){
     #print(input)
     feature <<- input$mymap_draw_new_feature
     feat_list[[i]] <<- geojsonsf::geojson_sf(jsonify::to_json(feature, unbox = T))
-    i<<- i+1
+    i <<- i+1
   })
   
   observeEvent(input$mymap_draw_edited_features, {
     cutfeature <<- input$mymap_draw_edited_features
+    edit_list[[i]] <<- geojsonsf::geojson_sf(jsonify::to_json(cutfeature, unbox = T))
+    i_edit <<- i_edit+1
     #print(cutfeature)
     
   })
@@ -73,4 +78,66 @@ server <- function(input, output, session){
 
 shinyApp(ui = ui, server = server)
 
+
 ```
+
+
+```{r bind}
+
+result = do.call(rbind, lapply(feat_list, st_sf))
+
+map_aoi_create = leaflet() %>% 
+                 addTiles() %>% 
+                 addPolygons(data = result) %>%
+                 #addMouseCoordinates() %>%
+                 addScaleBar()  
+  
+map_aoi_create
+
+
+
+```
+
+
+
+
+if (length(feat_list) == 1){
+    featpol = feat_list[[1]]
+    
+      } else {
+        
+        endpol = feat_list[[1]]
+        
+    for (n in 2:length(feat_list)) {
+      featpol = c(endpol, feat_list[[n]])
+    }
+        
+  }
+
+
+if (!exists('edit_list')){
+        
+        edit_list = NULL
+        rm('edit_list')
+        
+      } else {
+        if (length(edit_list) == 1) {
+         editpol = edit_list[[1]]
+         
+            } else {
+              
+              editpol = edit_list[[1]]
+              for (n in 2:length(edit_list)) {
+                editpol = c(editpol, edit_list[[n]])
+           }
+      }    
+}
+
+
+```
+
+
+
+
+
+
